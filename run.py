@@ -56,7 +56,7 @@ def start_game(game: Game, message: discord.Message) -> List[str]:
     elif not game.is_player(message.author):
         return [f"You are not a part of that game yet, {message.author.name}.",
                 "Please message !join if you are interested in playing."]
-    elif len(game.players) < 2:
+    elif len(game.players) < 0:
         return ["The game must have at least two players before "
                 "it can be started."]
     else:
@@ -314,4 +314,13 @@ async def on_message(message):
 
         await message.channel.send('\n'.join(messages))
 
-client.run(input("Enter bot Token: "))
+
+TOKEN = input("Bot token: ")
+
+@client.event
+async def on_ready():
+    print(f"Logged in as {client.user.name}({client.user.id})")
+
+if __name__ == "__main__":
+    client.run('ODgyNTA4NzU0NzUzNTU2NTEw.YS8aUw.iA7L4Lr49QbDaVhkF3eLe6L4M5c')
+#'ODgyNTA4NzU0NzUzNTU2NTEw.YS8aUw.iA7L4Lr49QbDaVhkF3eLe6L4M5c'
