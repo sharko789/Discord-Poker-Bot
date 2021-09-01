@@ -9,7 +9,7 @@ from game import Game, GAME_OPTIONS, GameState
 POKER_BOT_TOKEN = os.getenv("POKER_BOT_TOKEN")
 
 client = discord.Client()
-games: Dict[discord.Channel, Game] = {}
+games: Dict[discord.TextChannel, Game] = {}
 
 # Starts a new game if one hasn't been started yet, returning an error message
 # if a game has already been started. Returns the messages the bot should say
@@ -254,31 +254,31 @@ Command = namedtuple("Command", ["description", "action"])
 
 # The commands avaliable to the players
 commands: Dict[str, Command] = {
-    '!newgame': Command('Starts a new game, allowing players to join.',
+    '$newgame': Command('Starts a new game, allowing players to join.',
                         new_game),
-    '!join':    Command('Lets you join a game that is about to begin',
+    '$join':    Command('Lets you join a game that is about to begin',
                         join_game),
-    '!start':   Command('Begins a game after all players have joined',
+    '$start':   Command('Begins a game after all players have joined',
                         start_game),
-    '!deal':    Command('Deals the hole cards to all the players',
+    '$deal':    Command('Deals the hole cards to all the players',
                         deal_hand),
-    '!call':    Command('Matches the current bet',
+    '$call':    Command('Matches the current bet',
                         call_bet),
-    '!raise':   Command('Increase the size of current bet',
+    '$raise':   Command('Increase the size of current bet',
                         raise_bet),
-    '!check':   Command('Bet no money',
+    '$check':   Command('Bet no money',
                         check),
-    '!fold':    Command('Discard your hand and forfeit the pot',
+    '$fold':    Command('Discard your hand and forfeit the pot',
                         fold_hand),
-    '!help':    Command('Show the list of commands',
+    '$help':    Command('Show the list of commands',
                         show_help),
-    '!options': Command('Show the list of options and their current values',
+    '$options': Command('Show the list of options and their current values',
                         show_options),
-    '!set':     Command('Set the value of an option',
+    '$set':     Command('Set the value of an option',
                         set_option),
-    '!count':   Command('Shows how many chips each player has left',
+    '$count':   Command('Shows how many chips each player has left',
                         chip_count),
-    '!all-in':  Command('Bets the entirety of your remaining chips',
+    '$all-in':  Command('Bets the entirety of your remaining chips',
                         all_in),
 }
 
@@ -294,16 +294,12 @@ async def on_message(message):
     # Ignore empty messages
     if len(message.content.split()) == 0:
         return
-    # Ignore private messages
-    if message.channel.is_private:
-        return
 
     command = message.content.split()[0]
-    if command[0] == '!':
+    if command[0] == '$':
         if command not in commands:
-            await client.send_message(
-                message.channel, f"{message.content} is not a valid command. "
-                                 "Message !help to see the list of commands.")
+            await message.channel.send(f"{message.content} is not a valid command. "
+                                 "Message $help to see the list of commands.")
             return
 
         game = games.setdefault(message.channel, Game())
@@ -313,9 +309,9 @@ async def on_message(message):
         # players individually must be done seperately, so we check the messages
         # to the channel to see if hands were just dealt, and if so, we tell the
         # players what their hands are.
-        if command == '!deal' and messages[0] == 'The hands have been dealt!':
+        if command == '$deal' and messages[0] == 'The hands have been dealt!':
             await game.tell_hands(client)
 
-        await client.send_message(message.channel, '\n'.join(messages))
+        await message.channel.send('\n'.join(messages))
 
-client.run(POKER_BOT_TOKEN)
+client.run('ODgyNTA4NzU0NzUzNTU2NTEw.YS8aUw.hPYvhmhlIchaeZEJ_gLOdhoYYgM')
