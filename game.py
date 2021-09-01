@@ -285,22 +285,22 @@ class Game:
 
         messages = ["We have reached the end of betting. "
                     "All cards will be revealed."]
-         #Open card images
-            cardnames = [str('card/' + x + '.png') for x in self.shared_cards]
-            images = [Image.open(x) for x in cardnames
-            widths, heights = zip(*(i.size for i in images))
-            total_width = sum(widths)
-            max_height = max(heights)
-            #Create new image to send
-            new_im = Image.new('RGB', (total_width, max_height))
-            x_offset = 0
-            for im in images:
-              new_im.paste(im, (x_offset,0))
-              x_offset += im.size[0]
-                
-            bytes = BytesIO()
-            new_im.save(bytes, format="PNG")
-            bytes.seek(0)
+        #Open card images
+        cardnames = [str('card/' + x + '.png') for x in self.shared_cards]
+        images = [Image.open(x) for x in cardnames]
+        widths, heights = zip(*(i.size for i in images))
+        total_width = sum(widths)
+        max_height = max(heights)
+        #Create new image to send
+        new_im = Image.new('RGB', (total_width, max_height))
+        x_offset = 0
+        for im in images:
+          new_im.paste(im, (x_offset,0))
+          x_offset += im.size[0]
+
+        bytes = BytesIO()
+        new_im.save(bytes, format="PNG")
+        bytes.seek(0)
             
         messages.append(file = discord.File(bytes, filename='new_im.png'))
 
