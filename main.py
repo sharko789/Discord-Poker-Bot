@@ -6,7 +6,6 @@ import discord
 
 from game import Game, GAME_OPTIONS, GameState
 
-POKER_BOT_TOKEN = os.getenv("POKER_BOT_TOKEN")
 
 client = discord.Client()
 games: Dict[discord.TextChannel, Game] = {}
@@ -204,7 +203,7 @@ def set_option(game: Game, message: discord.Message) -> List[str]:
     tokens = message.content.split()
     if len(tokens) == 2:
         return ["You must specify a new value after the name of an option "
-                "when using the !set command."]
+                "when using the $set command."]
     elif len(tokens) == 1:
         return ["You must specify an option and value to set when using "
                 "the !set command."]
@@ -315,11 +314,12 @@ async def on_message(message):
         await message.channel.send('\n'.join(messages))
 
 
-TOKEN = os.getenv("TOKEN")
+TOKEN = input("Bot token: ")
 
 @client.event
 async def on_ready():
     print(f"Logged in as {client.user.name}({client.user.id})")
-    
+
 if __name__ == "__main__":
-    client.run(TOKEN)
+    client.run('ODgyNTA4NzU0NzUzNTU2NTEw.YS8aUw.p5z336uw0yVlb5YJHRq__u16rDo')
+
