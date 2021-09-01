@@ -286,7 +286,8 @@ class Game:
         messages = ["We have reached the end of betting. "
                     "All cards will be revealed."]
         #Open card images
-        cardnames = [str('card/' + x + '.png') for x in self.shared_cards]
+        for card in self.shared_cards:
+            cardnames.append('card/' + str(card) + '.png')
         images = [Image.open(x) for x in cardnames]
         widths, heights = zip(*(i.size for i in images))
         total_width = sum(widths)
