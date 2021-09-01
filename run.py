@@ -322,5 +322,4 @@ async def on_ready():
     print(f"Logged in as {client.user.name}({client.user.id})")
 
 if __name__ == "__main__":
-    client.run('ODgyNTA4NzU0NzUzNTU2NTEw.YS8aUw.iA7L4Lr49QbDaVhkF3eLe6L4M5c')
-#'ODgyNTA4NzU0NzUzNTU2NTEw.YS8aUw.iA7L4Lr49QbDaVhkF3eLe6L4M5c'
+    client.run(TOKEN)
