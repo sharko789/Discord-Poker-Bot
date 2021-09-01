@@ -307,9 +307,8 @@ class Game:
         for player in self.pot.in_pot():
             messages.append(f"{player.name}'s hand: "
                             f"{player.cards[0]}  {player.cards[1]}")
-
-        winners = self.pot.get_winners(self.
-                                      )
+            
+        winners = self.pot.get_winners(self.shared_cards)
         for winner, winnings in sorted(winners.items(), key=lambda item: item[1]):
             hand_name = str(best_possible_hand(self.shared_cards, winner.cards))
             messages.append(f"{winner.name} wins ${winnings} with a {hand_name}.")
