@@ -1,3 +1,5 @@
+import sys
+from PIL import Image
 from collections import namedtuple
 from datetime import datetime, timedelta
 from enum import Enum
@@ -17,7 +19,7 @@ GAME_OPTIONS: Dict[str, Option] = {
     "raise-delay": Option("The number of minutes before blinds double",  30),
     "starting-blind": Option("The starting price of the small blind", 5)
 }
-
+    
 # An enumeration that says what stage of the game we've reached
 class GameState(Enum):
     # Game hasn't started yet
@@ -376,5 +378,21 @@ class Game:
     # Send a message to each player, telling them what their hole cards are
     async def tell_hands(self, client: discord.Client):
         for player in self.players:
-            await player.user.send(file = discord.File('card/' + str(player.cards[0]) + '.png'))
-            await player.user.send(file = discord.File('card/' + str(player.cards[1]) + '.png'))
+            
+            #Open card images
+            images = [Image.open(x) for x in ['card/' + str(player.cards[0]) + '.png', 'card/' + str(player.cards[1]) + '.png']]
+            widths, heights = zip(*(i.size for i in images))
+        
+            total_width = sum(widths)
+            max_height = max(heights)
+            #Create new image to send
+            new_im = Image.new('RGB', (total_width, max_height))
+            x_offset = 0
+            for im in images:
+              new_im.paste(im, (x_offset,0))
+              x_offset += im.size[0]
+                
+            bytes = BytesIO()
+            new_im.save(bytes, format="PNG")
+            bytes.seek(0)
+            await player.user.send(file = discord.File(bytes, filename='new_im.png'))
