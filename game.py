@@ -286,13 +286,9 @@ class Game:
         messages = ["We have reached the end of betting. "
                     "All cards will be revealed."]
          #Open card images
-            images = [Image.open(x) for x in ['card/' + str(self.shared_cards[0]) + '.png', 
-                                              'card/' + str(self.shared_cards[1]) + '.png', 
-                                              'card/' + str(self.shared_cards[2]) + '.png',
-                                              'card/' + str(self.shared_cards[3]) + '.png',
-                                              'card/' + str(self.shared_cards[4]) + '.png']]
+            cardnames = [str('card/' + x + '.png') for x in self.shared_cards]
+            images = [Image.open(x) for x in cardnames
             widths, heights = zip(*(i.size for i in images))
-        
             total_width = sum(widths)
             max_height = max(heights)
             #Create new image to send
