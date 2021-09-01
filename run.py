@@ -3,6 +3,7 @@ import os
 from typing import Dict, List
 
 import discord
+from discord.ext import commands
 
 from game import Game, GAME_OPTIONS, GameState
 
@@ -315,11 +316,15 @@ async def on_message(message):
         await message.channel.send('\n'.join(messages))
 
 
-TOKEN = input("Bot token: ")
+TOKEN = os.getenv("TOKEN")
 
 @client.event
 async def on_ready():
     print(f"Logged in as {client.user.name}({client.user.id})")
 
+@client.command()
+async def ping(ctx):
+    await ctx.send("pong")
+    
 if __name__ == "__main__":
     client.run(TOKEN)
