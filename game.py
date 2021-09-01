@@ -285,14 +285,35 @@ class Game:
 
         messages = ["We have reached the end of betting. "
                     "All cards will be revealed."]
-
-        messages.append("  ".join(str(card) for card in self.shared_cards))
+         #Open card images
+            images = [Image.open(x) for x in ['card/' + self.shared_cards[0] + '.png', 
+                                              'card/' + self.shared_cards[1] + '.png',
+                                              'card/' + self.shared_cards[2] + '.png',
+                                              'card/' + self.shared_cards[3] + '.png',
+                                              'card/' + self.shared_cards[4] + '.png',]]
+            widths, heights = zip(*(i.size for i in images))
+        
+            total_width = sum(widths)
+            max_height = max(heights)
+            #Create new image to send
+            new_im = Image.new('RGB', (total_width, max_height))
+            x_offset = 0
+            for im in images:
+              new_im.paste(im, (x_offset,0))
+              x_offset += im.size[0]
+                
+            bytes = BytesIO()
+            new_im.save(bytes, format="PNG")
+            bytes.seek(0)
+            
+        messages.append(file = discord.File(bytes, filename='new_im.png'))
 
         for player in self.pot.in_pot():
             messages.append(f"{player.name}'s hand: "
                             f"{player.cards[0]}  {player.cards[1]}")
 
-        winners = self.pot.get_winners(self.shared_cards)
+        winners = self.pot.get_winners(self.
+                                      )
         for winner, winnings in sorted(winners.items(), key=lambda item: item[1]):
             hand_name = str(best_possible_hand(self.shared_cards, winner.cards))
             messages.append(f"{winner.name} wins ${winnings} with a {hand_name}.")
