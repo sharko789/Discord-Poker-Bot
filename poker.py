@@ -5,7 +5,7 @@ from itertools import combinations
 from typing import List, Tuple
 import random
 
-SUITS = (':ggclub:', ':ggheart:', ':ggdiamond:', ':ggspade:')
+SUITS = ('♠', '♥', '♦', '♣')
 
 RankInfo = namedtuple('RankInfo', ['name', 'plural', 'value'])
 
