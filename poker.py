@@ -1,216 +1,380 @@
 from collections import namedtuple
+from datetime import datetime, timedelta
 from enum import Enum
-from functools import total_ordering
-from itertools import combinations
-from typing import List, Tuple
-import random
+from typing import Dict, List
 
-SUITS = ('♠', '♥', '♦', '♣')
+import discord
 
-RankInfo = namedtuple('RankInfo', ['name', 'plural', 'value'])
+from player import Player
+from poker import best_possible_hand, Card, Deck
+from pot import PotManager
 
-RANK_INFO = {
-    "2":  RankInfo("deuce", "deuces", 0),
-    "3":  RankInfo("three", "threes", 1),
-    "4":  RankInfo("four",  "fours",  2),
-    "5":  RankInfo("five",  "fives",  3),
-    "6":  RankInfo("six",   "sixes",  4),
-    "7":  RankInfo("seven", "sevens", 5),
-    "8":  RankInfo("eight", "eights", 6),
-    "9":  RankInfo("nine",  "nines",  7),
-    "10": RankInfo("ten",   "tens",   8),
-    "J":  RankInfo("jack",  "jacks",  9),
-    "Q":  RankInfo("queen", "queens", 10),
-    "K":  RankInfo("king",  "kings",  11),
-    "A":  RankInfo("ace",   "aces",   12),
+Option = namedtuple("Option", ["description", "default"])
+
+GAME_OPTIONS: Dict[str, Option] = {
+    "blind":  Option("The current price of the small blind", 5),
+    "buy-in": Option("The amount of money all players start out with", 500),
+    "raise-delay": Option("The number of minutes before blinds double",  30),
+    "starting-blind": Option("The starting price of the small blind", 5)
 }
 
-# An enumeration for ranking poker hands
-@total_ordering
-class HandRanking(Enum):
-    HIGH_CARD = 1
-    PAIR = 2
-    TWO_PAIR = 3
-    THREE_OF_KIND = 4
-    STRAIGHT = 5
-    FLUSH = 6
-    FULL_HOUSE = 7
-    FOUR_OF_KIND = 8
-    STRAIGHT_FLUSH = 9
-    # Royal flush is just a special case of the straight flush
+# An enumeration that says what stage of the game we've reached
+class GameState(Enum):
+    # Game hasn't started yet
+    NO_GAME = 1
+    # A game has started, and we're waiting for players to join
+    WAITING = 2
+    # Everyone's joined, we're waiting for the hands to be dealt
+    NO_HANDS = 3
+    # We've dealt hands to everyone, they're making their bets
+    HANDS_DEALT = 4
+    # We've just dealt the flop
+    FLOP_DEALT = 5
+    # We just dealt the turn
+    TURN_DEALT = 6
+    # We just dealt the river
+    RIVER_DEALT = 7
 
-    def __lt__(self, other):
-        return self.value < other.value
+# A class that keeps track of all the information having to do with a game
+class Game:
+    def __init__(self) -> None:
+        self.new_game()
+        # Set the game options to the defaults
+        self.options = {key: value.default
+                        for key, value in GAME_OPTIONS.items()}
 
-# A simple class representing a card
-@total_ordering
-class Card:
-    def __init__(self, suit: str, rank: str) -> None:
-        self.suit = suit
-        self.rank = rank
+    def new_game(self) -> None:
+        self.state = GameState.NO_GAME
+        # The players participating in the game
+        self.players: List[Player] = []
+        # The players participating in the current hand
+        self.in_hand: List[Player] = []
+        # The index of the current dealer
+        self.dealer_index = 0
+        # The index of the first person to bet in the post-flop rounds
+        self.first_bettor = 0
+        # The deck that we're dealing from
+        self.cur_deck: Deck = None
+        # The five cards shared by all players
+        self.shared_cards: List[Card] = []
+        # Used to keep track of the current value of the pot, and who's in it
+        self.pot = PotManager()
+        # The index of the player in in_hand whose turn it is
+        self.turn_index = -1
+        # The last time that the blinds were automatically raised
+        self.last_raise: datetime = None
 
-    # When comparing two cards, suit doesn't matter, just the rank of the card
-    def __lt__(self, other):
-        return RANK_INFO[self.rank].value < RANK_INFO[other.rank].value
-
-    def __eq__(self, other):
-        return self.rank == other.rank
-
-    def __str__(self) -> str:
-        return self.suit + self.rank
-
-    @property
-    def name(self) -> str:
-        return RANK_INFO[self.rank].name
-
-    @property
-    def plural(self) -> str:
-        return RANK_INFO[self.rank].plural
-
-# A class for representing a 5-card hand, and allowing for the easy comparison
-# of hands
-@total_ordering
-class Hand:
-    def __init__(self, cards: List[Card]) -> None:
-        # Sort the cards first thing to make hands easier to compare
-        self.cards = sorted(cards)
-
-        # Gets a list of the duplicated cards (pairs, three-of-a-kinds, etc)
-        dups = self.get_dups()
-
-        # At this point, we determine the ranking of the hand
-        if self.is_flush():
-            if self.is_straight():
-                self.rank = HandRanking.STRAIGHT_FLUSH
-            else:
-                self.rank = HandRanking.FLUSH
-        elif self.is_straight():
-            self.rank = HandRanking.STRAIGHT
-        elif dups:
-            if len(dups) == 2:
-                if len(dups[1]) == 3:
-                    self.rank = HandRanking.FULL_HOUSE
-                else:
-                    self.rank = HandRanking.TWO_PAIR
-            else:
-                if len(dups[0]) == 4:
-                    self.rank = HandRanking.FOUR_OF_KIND
-                elif len(dups[0]) == 3:
-                    self.rank = HandRanking.THREE_OF_KIND
-                else:
-                    self.rank = HandRanking.PAIR
-            self.rearrange_dups(dups)
-        else:
-            self.rank = HandRanking.HIGH_CARD
-
-    def __lt__(self, other):
-        if self.rank < other.rank:
-            return True
-        if self.rank > other.rank:
+    # Adds a new player to the game, returning if they weren't already playing
+    def add_player(self, user: discord.User) -> bool:
+        if self.is_player(user):
             return False
-        for self_card, other_card in zip(self.cards[::-1], other.cards[::-1]):
-            if self_card < other_card:
-                return True
-            elif self_card > other_card:
-                return False
-        return False
-
-    def __eq__(self, other):
-        if self.rank != other.rank:
-            return False
-        for self_card, other_card in zip(self.cards, other.cards):
-            if self_card != other_card:
-                return False
+        self.players.append(Player(user))
         return True
 
-    def __str__(self):
-        if self.rank == HandRanking.HIGH_CARD:
-            return self.cards[4].name + " high"
-        elif self.rank == HandRanking.PAIR:
-            return "pair of " + self.cards[4].plural
-        elif self.rank == HandRanking.TWO_PAIR:
-            return "two pair, " + self.cards[4].plural + " and " + self.cards[2].plural
-        elif self.rank == HandRanking.THREE_OF_KIND:
-            return "three of a kind, " + self.cards[4].plural
-        elif self.rank == HandRanking.STRAIGHT:
-            return self.cards[4].name + "-high straight"
-        elif self.rank == HandRanking.FLUSH:
-            return self.cards[4].name + "-high flush"
-        elif self.rank == HandRanking.FULL_HOUSE:
-            return "full house, " + self.cards[4].plural + " over " + self.cards[1].plural
-        elif self.rank == HandRanking.FOUR_OF_KIND:
-            return "four of a kind, " + self.cards[4].plural
-        elif self.rank == HandRanking.STRAIGHT_FLUSH:
-            if self.cards[4].rank == 'A':
-                return "royal flush"
-            else:
-                return self.cards[4].name + "-high straight flush"
+    # Returns whether a user is playing in the game
+    def is_player(self, user: discord.User) -> bool:
+        for player in self.players:
+            if player.user == user:
+                return True
+        return False
 
-    # Rearrange the duplicated cards in the hand so that comparing two hands
-    # with the same ranking is easier
-    # This moves duplicated cards to the end of the hand
-    def rearrange_dups(self, dups: List[List[Card]]) -> None:
-        flat_dups = [card for cards in dups for card in cards]
-        for dup in flat_dups:
-            self.cards.pop(self.cards.index(dup))
-        self.cards += flat_dups
-
-    # Returns whether the hand is a straight
-    def is_straight(self) -> bool:
-        ranks = [RANK_INFO[card.rank].value for card in self.cards]
-        # Check to see if each card is exactly one better than the previous card
-        for i in range(1, 5):
-            if ranks[i - 1] != ranks[i] - 1:
+    # Removes a player from being able to bet, if they folded or went all in
+    def leave_hand(self, to_remove: Player) -> None:
+        for i, player in enumerate(self.in_hand):
+            if player == to_remove:
+                index = i
                 break
         else:
-            # If we've reached this point, each card was exactly one rank
-            # higher than the previous card.
-            return True
-        # Check for the special case of an ace-low straight
-        if ranks == [0, 1, 2, 3, 12]:
-            self.cards = [self.cards[-1]] + self.cards[:-1]
-            return True
-        return False
+            # The player who we're removing isn't in the hand, so just
+            # return
+            return
 
-    # Returns whether a hand is a flush, meaning all the cards are the same suit
-    def is_flush(self) -> bool:
-        suit = self.cards[0].suit
-        for card in self.cards[1:]:
-            if card.suit != suit:
-                return False
-        return True
+        self.in_hand.pop(index)
 
-    # Returns a list of the pairs, three-of-a-kinds and four-of-a-kinds in the hand
-    def get_dups(self) -> List[List[Card]]:
-        dups: List[List[Card]] = []
-        cur_dup: List[Card] = [self.cards[0]]
-        for card in self.cards[1:]:
-            if cur_dup[0] != card:
-                if len(cur_dup) > 1:
-                    dups.append(cur_dup)
-                cur_dup = [card]
+        # Adjust the index of the first person to bet and the index of the
+        # current player, depending on the index of the player who just folded
+        if index < self.first_bettor:
+            self.first_bettor -= 1
+        if self.first_bettor >= len(self.in_hand):
+            self.first_bettor = 0
+        if self.turn_index >= len(self.in_hand):
+            self.turn_index = 0
+
+    # Returns some messages to update the players on the state of the game
+    def status_between_rounds(self) -> List[str]:
+        messages = []
+        for player in self.players:
+            messages.append(f"{player.user.name} has ${player.balance}.")
+        messages.append(f"{self.dealer.user.name} is the current dealer. "
+                        "Message !deal to deal when you're ready.")
+        return messages
+
+    # Moves on to the next dealer
+    def next_dealer(self) -> None:
+        self.dealer_index = (self.dealer_index + 1) % len(self.players)
+
+    # Returns the current dealer
+    @property
+    def dealer(self) -> Player:
+        return self.players[self.dealer_index]
+
+    @property
+    def cur_bet(self) -> int:
+        return self.pot.cur_bet
+
+    # Returns the player who is next to move
+    @property
+    def current_player(self) -> Player:
+        return self.in_hand[self.turn_index]
+
+    # Starts a new game, returning the messages to tell the channel
+    def start(self) -> List[str]:
+        self.state = GameState.NO_HANDS
+        self.dealer_index = 0
+        for player in self.players:
+            player.balance = self.options["buy-in"]
+        # Reset the blind to be the starting blind value
+        self.options["blind"] = self.options["starting-blind"]
+        return ["The game has begun!"] + self.status_between_rounds()
+
+    # Starts a new round of Hold'em, dealing two cards to each player, and
+    # return the messages to tell the channel
+    def deal_hands(self) -> List[str]:
+        # Shuffles a new deck of cards
+        self.cur_deck = Deck()
+
+        # Start out the shared cards as being empty
+        self.shared_cards = []
+
+        # Deals hands to each player, setting their initial bets to zero and
+        # adding them as being in on the hand
+        self.in_hand = []
+        for player in self.players:
+            player.cards = (self.cur_deck.draw(), self.cur_deck.draw())
+            player.cur_bet = 0
+            player.placed_bet = False
+            self.in_hand.append(player)
+
+        self.state = GameState.HANDS_DEALT
+        messages = ["The hands have been dealt!"]
+
+        # Reset the pot for the new hand
+        self.pot.new_hand(self.players)
+
+        if self.options["blind"] > 0:
+            messages += self.pay_blinds()
+
+        self.turn_index -= 1
+        return messages + self.next_turn()
+
+    # Makes the blinds players pay up with their initial bets
+    def pay_blinds(self) -> List[str]:
+        messages: List[str] = []
+
+        # See if we need to raise the blinds or not
+        raise_delay = self.options["raise-delay"]
+        if raise_delay == 0:
+            # If the raise delay is set to zero, consider it as being turned
+            # off, and do nothing for blinds raises
+            self.last_raise = None
+        elif self.last_raise is None:
+            # Start the timer, if it hasn't been started yet
+            self.last_raise = datetime.now()
+        elif datetime.now() - self.last_raise > timedelta(minutes=raise_delay):
+            messages.append("**Blinds are being doubled this round!**")
+            self.options["blind"] *= 2
+            self.last_raise = datetime.now()
+
+        blind = self.options["blind"]
+
+        # Figure out the players that need to pay the blinds
+        if len(self.players) > 2:
+            small_player = self.players[(self.dealer_index + 1) % len(self.in_hand)]
+            big_player = self.players[(self.dealer_index + 2) % len(self.in_hand)]
+            # The first player to bet pre-flop is the player to the left of the big blind
+            self.turn_index = (self.dealer_index + 3) % len(self.in_hand)
+            # The first player to bet post-flop is the first player to the left of the dealer
+            self.first_bettor = (self.dealer_index + 1) % len(self.players)
+        else:
+            # In heads-up games, who plays the blinds is different, with the
+            # dealer playing the small blind and the other player paying the big
+            small_player = self.players[self.dealer_index]
+            big_player = self.players[self.dealer_index - 1]
+            # Dealer goes first pre-flop, the other player goes first afterwards
+            self.turn_index = self.dealer_index
+            self.first_bettor = self.dealer_index - 1
+
+        messages.append(f"{small_player.name} has paid the small blind "
+                        f"of ${blind}.")
+
+        if self.pot.pay_blind(small_player, blind):
+            messages.append(f"{small_player.name} is all in!")
+            self.leave_hand(small_player)
+
+        messages.append(f"{big_player.name} has paid the big blind "
+                        f"of ${blind * 2}.")
+        if self.pot.pay_blind(big_player, blind * 2):
+            messages.append(f"{big_player.name} is all in!")
+            self.leave_hand(big_player)
+
+        return messages
+
+    # Returns messages telling the current player their options
+    def cur_options(self) -> List[str]:
+        messages = [f"It is {self.current_player.name}'s turn. "
+                    f"{self.current_player.user.name} currently has "
+                    f"${self.current_player.balance}. "
+                    f"The pot is currently ${self.pot.value}."]
+        if self.pot.cur_bet > 0:
+            messages.append(f"The current bet to meet is ${self.cur_bet}, "
+                            f"and {self.current_player.name} has bet "
+                            f"${self.current_player.cur_bet}.")
+        else:
+            messages.append(f"The current bet to meet is ${self.cur_bet}.")
+        if self.current_player.cur_bet == self.cur_bet:
+            messages.append("Message !check, !raise or !fold.")
+        elif self.current_player.max_bet > self.cur_bet:
+            messages.append("Message !call, !raise or !fold.")
+        else:
+            messages.append("Message !all-in or !fold.")
+        return messages
+
+    # Advances to the next round of betting (or to the showdown), returning a
+    # list messages to tell the players
+    def next_round(self) -> List[str]:
+        messages: List[str] = []
+        if self.state == GameState.HANDS_DEALT:
+            messages.append("Dealing the flop:")
+            self.shared_cards.append(self.cur_deck.draw())
+            self.shared_cards.append(self.cur_deck.draw())
+            self.shared_cards.append(self.cur_deck.draw())
+            self.state = GameState.FLOP_DEALT
+        elif self.state == GameState.FLOP_DEALT:
+            messages.append("Dealing the turn:")
+            self.shared_cards.append(self.cur_deck.draw())
+            self.state = GameState.TURN_DEALT
+        elif self.state == GameState.TURN_DEALT:
+            messages.append("Dealing the river:")
+            self.shared_cards.append(self.cur_deck.draw())
+            self.state = GameState.RIVER_DEALT
+        elif self.state == GameState.RIVER_DEALT:
+            return self.showdown()
+        messages.append("  ".join(str(card) for card in self.shared_cards))
+        self.pot.next_round()
+        self.turn_index = self.first_bettor
+        return messages + self.cur_options()
+
+    # Finish a player's turn, advancing to either the next player who needs to
+    # bet, the next round of betting, or to the showdown
+    def next_turn(self) -> List[str]:
+        if self.pot.round_over():
+            if self.pot.betting_over():
+                return self.showdown()
             else:
-                cur_dup.append(card)
-        if len(cur_dup) > 1:
-            dups.append(cur_dup)
-        # For full houses, make it so the three-of-a-kind is always second in
-        # the list of duplicates
-        if len(dups) == 2 and len(dups[0]) > len(dups[1]):
-            dups[0], dups[1] = dups[1], dups[0]
-        return dups
+                return self.next_round()
+        else:
+            self.turn_index = (self.turn_index + 1) % len(self.in_hand)
+            return self.cur_options()
 
-# Returns the best possible 5-card hand that can be made from the five
-# community cards and a player's two hole cards
-def best_possible_hand(public: List[Card], private: Tuple[Card, Card]) -> Hand:
-    return max(Hand(list(hand))
-               for hand in combinations(tuple(public) + private, 5))
+    def showdown(self) -> List[str]:
+        while len(self.shared_cards) < 5:
+            self.shared_cards.append(self.cur_deck.draw())
 
-# A class for representing a simple, randomized deck that can be drawn from
-class Deck:
-    def __init__(self):
-        self.cards = [Card(suit, rank) for suit in SUITS
-                                       for rank in RANK_INFO]
-        random.shuffle(self.cards)
+        messages = ["We have reached the end of betting. "
+                    "All cards will be revealed."]
 
-    def draw(self) -> Card:
-        return self.cards.pop()
+        messages.append("  ".join(str(card) for card in self.shared_cards))
+
+        for player in self.pot.in_pot():
+            messages.append(f"{player.name}'s hand: "
+                            f"{player.cards[0]}  {player.cards[1]}")
+
+        winners = self.pot.get_winners(self.shared_cards)
+        for winner, winnings in sorted(winners.items(), key=lambda item: item[1]):
+            hand_name = str(best_possible_hand(self.shared_cards, winner.cards))
+            messages.append(f"{winner.name} wins ${winnings} with a {hand_name}.")
+            winner.balance += winnings
+
+        # Remove players that went all in and lost
+        i = 0
+        while i < len(self.players):
+            player = self.players[i]
+            if player.balance > 0:
+                i += 1
+            else:
+                messages.append(f"{player.name} has been knocked out of the game!")
+                self.players.pop(i)
+                if len(self.players) == 1:
+                    # There's only one player, so they win
+                    messages.append(f"{self.players[0].user.name} wins the game! "
+                                    "Congratulations!")
+                    self.state = GameState.NO_GAME
+                    return messages
+                if i <= self.dealer_index:
+                    self.dealer_index -= 1
+
+        # Go on to the next round
+        self.state = GameState.NO_HANDS
+        self.next_dealer()
+        messages += self.status_between_rounds()
+        return messages
+
+    # Make the current player check, betting no additional money
+    def check(self) -> List[str]:
+        self.current_player.placed_bet = True
+        return [f"{self.current_player.name} checks."] + self.next_turn()
+
+    # Has the current player raise a certain amount
+    def raise_bet(self, amount: int) -> List[str]:
+        self.pot.handle_raise(self.current_player, amount)
+        messages = [f"{self.current_player.name} raises by ${amount}."]
+        if self.current_player.balance == 0:
+            messages.append(f"{self.current_player.name} is all in!")
+            self.leave_hand(self.current_player)
+            self.turn_index -= 1
+        return messages + self.next_turn()
+
+    # Has the current player match the current bet
+    def call(self) -> List[str]:
+        self.pot.handle_call(self.current_player)
+        messages = [f"{self.current_player.name} calls."]
+        if self.current_player.balance == 0:
+            messages.append(f"{self.current_player.name} is all in!")
+            self.leave_hand(self.current_player)
+            self.turn_index -= 1
+        return messages + self.next_turn()
+
+    def all_in(self) -> List[str]:
+        if self.pot.cur_bet > self.current_player.max_bet:
+            return self.call()
+        else:
+            return self.raise_bet(self.current_player.max_bet - self.cur_bet)
+
+    # Has the current player fold their hand
+    def fold(self) -> List[str]:
+        messages = [f"{self.current_player.name} has folded."]
+        self.pot.handle_fold(self.current_player)
+        self.leave_hand(self.current_player)
+
+        # If only one person is left in the pot, give it to them instantly
+        if len(self.pot.in_pot()) == 1:
+            winner = list(self.pot.in_pot())[0]
+            messages += [f"{winner.name} wins ${self.pot.value}!"]
+            winner.balance += self.pot.value
+            self.state = GameState.NO_HANDS
+            self.next_dealer()
+            return messages + self.status_between_rounds()
+
+        # If there's still betting to do, go on to the next turn
+        if not self.pot.betting_over():
+            self.turn_index -= 1
+            return messages + self.next_turn()
+
+        # Otherwise, have the showdown immediately
+        return self.showdown()
+
+    # Send a message to each player, telling them what their hole cards are
+    async def tell_hands(self, client: discord.Client):
+        for player in self.players:
+            await player.user.send(file=discord.file("card/" + str(player.cards[0]) + 
+                                                     str(player.cards[1]) + ".png"))
