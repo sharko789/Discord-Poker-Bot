@@ -314,12 +314,12 @@ async def on_message(message):
         await message.channel.send('\n'.join(messages))
 
 
-TOKEN = input("Bot token: ")
+TOKEN = os.getenv("TOKEN")
 
 @client.event
 async def on_ready():
     print(f"Logged in as {client.user.name}({client.user.id})")
 
 if __name__ == "__main__":
-    client.run('ODgyNTA4NzU0NzUzNTU2NTEw.YS8aUw.p5z336uw0yVlb5YJHRq__u16rDo')
+    client.run(TOKEN)
 
