@@ -287,7 +287,7 @@ class Game:
                     "All cards will be revealed."]
          #Open card images
             images = [Image.open(x) for x in ['card/' + str(self.shared_cards[0]) + '.png', 
-                                              'card/' + str(self.shared_cards[1]) + '.png',
+                                              'card/' + str(self.shared_cards[1]) + '.png', 
                                               'card/' + str(self.shared_cards[2]) + '.png',
                                               'card/' + str(self.shared_cards[3]) + '.png',
                                               'card/' + str(self.shared_cards[4]) + '.png']]
