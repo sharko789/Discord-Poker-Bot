@@ -314,4 +314,4 @@ async def on_message(message):
 
         await message.channel.send('\n'.join(messages))
 
-client.run('ODgyNTA4NzU0NzUzNTU2NTEw.YS8aUw.hPYvhmhlIchaeZEJ_gLOdhoYYgM')
+client.run(input("Enter bot Token: "))
