@@ -286,6 +286,7 @@ class Game:
         messages = ["We have reached the end of betting. "
                     "All cards will be revealed."]
         #Open card images
+        cardnames = []
         for card in self.shared_cards:
             cardnames.append('card/' + str(card) + '.png')
         images = [Image.open(x) for x in cardnames]
