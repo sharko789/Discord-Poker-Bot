@@ -376,5 +376,5 @@ class Game:
     # Send a message to each player, telling them what their hole cards are
     async def tell_hands(self, client: discord.Client):
         for player in self.players:
-            await player.user.send(file=discord.file("card/" + str(player.cards[0]) + 
-                                                     str(player.cards[1]) + ".png"))
+            await player.user.send(file=discord.file('card/' + str(player.cards[0]) + 
+                                                     str(player.cards[1]) + '.png'))
