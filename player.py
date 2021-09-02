@@ -7,7 +7,7 @@ import os
 from poker import Card
 
 # Connect to player database
-DB_URL = os.getenv(DATABASE_URL)
+DB_URL = os.getenv("DATABASE_URL")
 conn = psycopg2.connect(DB_URL)
 dbcursor = conn.cursor()
 
