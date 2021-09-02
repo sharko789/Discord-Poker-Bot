@@ -309,7 +309,9 @@ class Game:
         bytes = BytesIO()
         new_im.save(bytes, format="PNG")
         bytes.seek(0)
+        print(new_im)
         async def announce(self):
+            print('sending')
             await self.channel.send(file = discord.File(bytes, filename='new_im.png'))
 
         for player in self.pot.in_pot():
