@@ -67,8 +67,8 @@ class Game:
         self.turn_index = -1
         # The last time that the blinds were automatically raised
         self.last_raise: datetime = None
-        self.channelid = message.channel.id
-        print(channelid)
+        self.channel = message.channel
+        print(self.channel)
 
     # Adds a new player to the game, returning if they weren't already playing
     def add_player(self, user: discord.User) -> bool:
@@ -309,8 +309,8 @@ class Game:
         bytes = BytesIO()
         new_im.save(bytes, format="PNG")
         bytes.seek(0)
-        channel = discord.client.get_channel(self.channelid)
-        await channel.send(file = discord.File(bytes, filename='new_im.png'))
+        async def announce(sefl, channel: discord.TextChannel):
+            await channel.send(file = discord.File(bytes, filename='new_im.png'))
 
         for player in self.pot.in_pot():
             messages.append(f"{player.name}'s hand: "
