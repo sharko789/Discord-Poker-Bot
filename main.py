@@ -29,7 +29,7 @@ games: Dict[discord.TextChannel, Game] = {}
 # if a game has already been started. Returns the messages the bot should say
 def register(game: Game, message: discord.Message) -> List[str]:
     newuid = message.author.id
-    dbcursor.execute("SELECT uid FROM players WHERE uid = %s", [newuid])
+    dbcursor.execute("SELECT uid FROM players WHERE uid = %d", [newuid])
     if (dbcursor.fetchone() is not None):
         dbcursor.execute(postgres_insert_query, newuid)
         messages = ["Thank you for registering!"]
