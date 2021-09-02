@@ -15,7 +15,7 @@ dbcursor = conn.cursor()
 postgres_insert_query = """ INSERT INTO players (uid) VALUES (%s)"""
 
 dbcursor.execute('''CREATE TABLE IF NOT EXISTS players (
-                        uid CHAR PRIMARY KEY,
+                        uid INT PRIMARY KEY,
                         money INT DEFAULT 1000,
                         exp INT DEFAULT 0,
                         level INT DEFAULT 1,
@@ -31,7 +31,8 @@ def register(game: Game, message: discord.Message) -> List[str]:
     newuid = str(message.author.id)
     dbcursor.execute("SELECT uid FROM players WHERE uid = %s", [newuid])
     if (dbcursor.fetchone() is None):
-        dbcursor.execute(postgres_insert_query, [newuid])
+        dbcursor.execute(postgres_insert_query, message.author.id)
+        conn.commit()
         messages = ["Thank you for registering!"]
     else:
         messages = ["You already have registered!"]
