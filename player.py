@@ -1,8 +1,20 @@
 from typing import Tuple
 
 import discord
+import sqlite3
 
 from poker import Card
+
+# Connect to player database
+db = sqlite3.connect('main.db')
+dbcursor = db.cursor()
+
+dbcursor.execute('''CREATE TABLE IF NOT EXISTS players {
+                        uid int PRIMARY KEY,
+                        money int,
+                        exp int,
+                        level int,
+                        wincount int}''')
 
 # A class that contains information on an individual player
 class Player:
