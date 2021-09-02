@@ -40,7 +40,7 @@ def register(game: Game, message: discord.Message) -> List[str]:
 
 def new_game(game: Game, message: discord.Message) -> List[str]:
     if game.state == GameState.NO_GAME:
-        game.new_game()
+        game.new_game(message)
         game.add_player(message.author)
         game.state = GameState.WAITING
         return [f"A new game has been started by {message.author.name}!",
@@ -350,4 +350,3 @@ async def on_ready():
 
 if __name__ == "__main__":
     client.run(TOKEN)
-
