@@ -1,22 +1,8 @@
 from typing import Tuple
 
 import discord
-import psycopg2
-import os
 
 from poker import Card
-
-# Connect to player database
-DB_URL = os.getenv("DATABASE_URL")
-conn = psycopg2.connect(DB_URL)
-dbcursor = conn.cursor()
-
-dbcursor.execute('''CREATE TABLE IF NOT EXISTS players (
-                        uid INT PRIMARY KEY,
-                        money INT,
-                        exp INT,
-                        level INT,
-                        wincount INT)''')
 
 # A class that contains information on an individual player
 class Player:
