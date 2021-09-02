@@ -20,6 +20,8 @@ GAME_OPTIONS: Dict[str, Option] = {
     "starting-blind": Option("The starting price of the small blind", 5)
 }
     
+
+
 # An enumeration that says what stage of the game we've reached
 class GameState(Enum):
     # Game hasn't started yet
@@ -65,7 +67,8 @@ class Game:
         self.turn_index = -1
         # The last time that the blinds were automatically raised
         self.last_raise: datetime = None
-        self.channel = message.channel
+        self.channelid = message.channel.id
+        print(channelid)
 
     # Adds a new player to the game, returning if they weren't already playing
     def add_player(self, user: discord.User) -> bool:
@@ -279,6 +282,7 @@ class Game:
             self.turn_index = (self.turn_index + 1) % len(self.in_hand)
             return self.cur_options()
 
+    
     def showdown(self) -> List[str]:
         while len(self.shared_cards) < 5:
             self.shared_cards.append(self.cur_deck.draw())
@@ -292,6 +296,7 @@ class Game:
             cardnames.append('card/' + str(self.shared_cards[x]) + '.png')
             print(cardnames[x])
         images = [Image.open(x) for x in cardnames]
+        print(images)
         widths, heights = zip(*(i.size for i in images))
         total_width = sum(widths)
         max_height = max(heights)
@@ -301,14 +306,12 @@ class Game:
         for im in images:
           new_im.paste(im, (x_offset,0))
           x_offset += im.size[0]
-
         bytes = BytesIO()
         new_im.save(bytes, format="PNG")
         bytes.seek(0)
-        
-        async def showcardimage(self):
-            await self.channel.send(file = discord.File(bytes, filename='new_im.png'))
-            
+        channel = discord.client.get_channel(self.channelid)
+        await channel.send(file = discord.File(bytes, filename='new_im.png'))
+
         for player in self.pot.in_pot():
             messages.append(f"{player.name}'s hand: "
                             f"{player.cards[0]}  {player.cards[1]}")
