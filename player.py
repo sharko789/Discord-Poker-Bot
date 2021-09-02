@@ -11,12 +11,12 @@ DB_URL = os.getenv("DATABASE_URL")
 conn = psycopg2.connect(DB_URL)
 dbcursor = conn.cursor()
 
-dbcursor.execute('''CREATE players {
+dbcursor.execute('''CREATE TABLE IF NOT EXISTS players (
                         uid INT PRIMARY KEY,
                         money INT,
                         exp INT,
                         level INT,
-                        wincount INT}''')
+                        wincount INT)''')
 
 # A class that contains information on an individual player
 class Player:
