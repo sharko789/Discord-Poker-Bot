@@ -31,7 +31,7 @@ def register(game: Game, message: discord.Message) -> List[str]:
     newuid = str(message.author.id)
     dbcursor.execute("SELECT uid FROM players WHERE uid = %s", [newuid])
     if (dbcursor.fetchone() is None):
-        dbcursor.execute(postgres_insert_query, message.author.id)
+        dbcursor.execute(postgres_insert_query, newuid)
         conn.commit()
         messages = ["Thank you for registering!"]
     else:
