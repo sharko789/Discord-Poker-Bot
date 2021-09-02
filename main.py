@@ -12,7 +12,7 @@ DB_URL = os.getenv("DATABASE_URL")
 conn = psycopg2.connect(DB_URL)
 dbcursor = conn.cursor()
 
-postgres_insert_query = """ INSERT INTO players (uid) VALUE ({})"""
+postgres_insert_query = """ INSERT INTO players (uid) VALUES (%s)"""
 
 dbcursor.execute('''CREATE TABLE IF NOT EXISTS players (
                         uid CHAR PRIMARY KEY,
@@ -29,9 +29,9 @@ games: Dict[discord.TextChannel, Game] = {}
 # if a game has already been started. Returns the messages the bot should say
 def register(game: Game, message: discord.Message) -> List[str]:
     newuid = str(message.author.id)
-    dbcursor.execute("SELECT uid FROM players WHERE uid = {}", .format([newuid]))
+    dbcursor.execute("SELECT uid FROM players WHERE uid = %s", .[newuid])
     if (dbcursor.fetchone() is None):
-        dbcursor.execute(postgres_insert_query, .format(newuid))
+        dbcursor.execute(postgres_insert_query, [newuid])
         messages = ["Thank you for registering!"]
     else:
         messages = ["You already have registered!"]
