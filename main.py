@@ -15,7 +15,7 @@ dbcursor = conn.cursor()
 postgres_insert_query = """ INSERT INTO players (uid) VALUES (%s)"""
 
 dbcursor.execute('''CREATE TABLE IF NOT EXISTS players (
-                        uid INT PRIMARY KEY,
+                        uid serial PRIMARY KEY,
                         money INT DEFAULT 1000,
                         exp INT DEFAULT 0,
                         level INT DEFAULT 1,
