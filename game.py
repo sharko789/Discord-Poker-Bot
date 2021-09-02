@@ -287,8 +287,10 @@ class Game:
                     "All cards will be revealed."]
         #Open card images
         cardnames = []
-        for card in self.shared_cards:
-            cardnames.append('card/' + str(card) + '.png')
+        for x in range(5):
+            print('debug: card processing...')
+            cardnames[x].append('card/' + str(self.shared_cards[x]) + '.png')
+            print(cardnames[x])
         images = [Image.open(x) for x in cardnames]
         widths, heights = zip(*(i.size for i in images))
         total_width = sum(widths)
