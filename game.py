@@ -1,4 +1,3 @@
-import sys
 from PIL import Image
 from io import BytesIO
 from collections import namedtuple
@@ -40,13 +39,13 @@ class GameState(Enum):
 
 # A class that keeps track of all the information having to do with a game
 class Game:
-    def __init__(self) -> None:
-        self.new_game()
+    def __init__(self, message: discord.Message) -> None:
+        self.new_game(message)
         # Set the game options to the defaults
         self.options = {key: value.default
                         for key, value in GAME_OPTIONS.items()}
 
-    def new_game(self) -> None:
+    def new_game(self, message: discord.Message) -> None:
         self.state = GameState.NO_GAME
         # The players participating in the game
         self.players: List[Player] = []
@@ -66,6 +65,7 @@ class Game:
         self.turn_index = -1
         # The last time that the blinds were automatically raised
         self.last_raise: datetime = None
+        self.channel = message.channel
 
     # Adds a new player to the game, returning if they weren't already playing
     def add_player(self, user: discord.User) -> bool:
@@ -304,7 +304,7 @@ class Game:
         new_im.save(bytes, format="PNG")
         bytes.seek(0)
             
-        messages.append(file = discord.File(bytes, filename='new_im.png'))
+        self.channel.send(file = discord.File(bytes, filename='new_im.png'))
 
         for player in self.pot.in_pot():
             messages.append(f"{player.name}'s hand: "
