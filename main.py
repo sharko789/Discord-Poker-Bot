@@ -302,6 +302,8 @@ commands: Dict[str, Command] = {
                         chip_count),
     '$all-in':  Command('Bets the entirety of your remaining chips',
                         all_in),
+    '$reg':     Command('Register player in database',
+                        register),
 }
 
 @client.event
