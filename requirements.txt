@@ -1,3 +1,4 @@
 discord
 pillow
 psycopg2
+newrelic
