@@ -329,7 +329,7 @@ async def on_message(message):
                                  "Message $help to see the list of commands.")
             return
 
-        game = games.setdefault(message.channel, Game())
+        game = games.setdefault(message.channel, Game(message))
         messages = commands[command][1](game, message)
 
         # The messages to send to the channel and the messages to send to the
