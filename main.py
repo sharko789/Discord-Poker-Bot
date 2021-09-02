@@ -27,13 +27,16 @@ games: Dict[discord.TextChannel, Game] = {}
 
 # Starts a new game if one hasn't been started yet, returning an error message
 # if a game has already been started. Returns the messages the bot should say
-def register(message: discord.Message):
+def register(game: Game, message: discord.Message) -> List[str]:
     newuid = message.author.id
-    dbcursor.execute('''IF (WHERE EXISTS (SELECT 1 FROM players WHERE uid = newuid)) THEN
-                            RETURN;
-                        ELSE 
-                            dbcursor.execute(postgres_insert_query, newuid)''')
-    connection.commit()                      
+    cur.execute("SELECT uid FROM players WHERE uid = %s", (newuid))
+    if (cur.fetchone() is not None):
+        dbcursor.execute(postgres_insert_query, newuid)
+        messages = ["Thank you for registering!"]
+    else:
+        messages = ["You already have registered!"]
+       
+    return messages
 
 def new_game(game: Game, message: discord.Message) -> List[str]:
     if game.state == GameState.NO_GAME:
