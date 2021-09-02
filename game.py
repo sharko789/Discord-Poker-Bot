@@ -286,10 +286,10 @@ class Game:
         messages = ["We have reached the end of betting. "
                     "All cards will be revealed."]
         #Open card images
-        cardnames = []
+        cardnames = [5]
         for x in range(5):
             print('debug: card processing...')
-            cardnames[x].append('card/' + str(self.shared_cards[x]) + '.png')
+            cardnames[x] = ('card/' + str(self.shared_cards[x]) + '.png')
             print(cardnames[x])
         images = [Image.open(x) for x in cardnames]
         widths, heights = zip(*(i.size for i in images))
