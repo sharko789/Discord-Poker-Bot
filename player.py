@@ -9,12 +9,12 @@ from poker import Card
 db = sqlite3.connect('main.db')
 dbcursor = db.cursor()
 
-dbcursor.execute('''CREATE TABLE IF NOT EXISTS players {
+dbcursor.execute('''CREATE TABLE IF NOT EXISTS players (
                         uid int PRIMARY KEY,
                         money int,
                         exp int,
                         level int,
-                        wincount int}''')
+                        wincount int)''')
 
 # A class that contains information on an individual player
 class Player:
