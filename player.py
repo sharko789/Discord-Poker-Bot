@@ -2,11 +2,13 @@ from typing import Tuple
 
 import discord
 import sqlite3
+import os
 
 from poker import Card
 
 # Connect to player database
-db = sqlite3.connect('main.db')
+DB_URL = os.getenv(DATABASE_URL)
+db = sqlite3.connect(DB_URL)
 dbcursor = db.cursor()
 
 dbcursor.execute('''CREATE TABLE IF NOT EXISTS players (
