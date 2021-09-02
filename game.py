@@ -306,7 +306,7 @@ class Game:
         new_im.save(bytes, format="PNG")
         bytes.seek(0)
             
-        self.channel.send(file = discord.File(bytes, filename='new_im.png'))
+        await self.channel.send(file = discord.File(bytes, filename='new_im.png'))
 
         for player in self.pot.in_pot():
             messages.append(f"{player.name}'s hand: "
