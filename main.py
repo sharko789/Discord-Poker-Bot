@@ -1,5 +1,4 @@
 from collections import namedtuple
-import psycopg2
 import os
 from typing import Dict, List
 
@@ -7,10 +6,6 @@ import discord
 
 from game import Game, GAME_OPTIONS, GameState
 
-# Connect to player database
-DB_URL = os.getenv("DATABASE_URL")
-conn = psycopg2.connect(DB_URL)
-dbcursor = conn.cursor()
 
 
 dbcursor.execute('''CREATE TABLE IF NOT EXISTS players (
@@ -24,19 +19,6 @@ dbcursor.execute('''CREATE TABLE IF NOT EXISTS players (
 client = discord.Client()
 games: Dict[discord.TextChannel, Game] = {}
 
-# Starts a new game if one hasn't been started yet, returning an error message
-# if a game has already been started. Returns the messages the bot should say
-def register(game: Game, message: discord.Message) -> List[str]:
-    newuid = str(message.author.id)
-    dbcursor.execute("SELECT uid FROM players WHERE uid = %s", [newuid])
-    if (dbcursor.fetchone() is None):
-        dbcursor.execute("INSERT INTO players (uid) VALUES (%s)", [newuid])
-        conn.commit()
-        messages = ["Thank you for registering!"]
-    else:
-        messages = ["You already have registered!"]
-       
-    return messages
 
 def new_game(game: Game, message: discord.Message) -> List[str]:
     if game.state == GameState.NO_GAME:
