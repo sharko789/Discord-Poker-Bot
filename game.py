@@ -112,7 +112,7 @@ class Game:
         for player in self.players:
             messages.append(f"{player.user.name} has ${player.balance}.")
         messages.append(f"{self.dealer.user.name} is the current dealer. "
-                        "Message !deal to deal when you're ready.")
+                        "Message #deal to deal when you're ready.")
         return messages
 
     # Moves on to the next dealer
@@ -238,11 +238,11 @@ class Game:
         else:
             messages.append(f"The current bet to meet is ${self.cur_bet}.")
         if self.current_player.cur_bet == self.cur_bet:
-            messages.append("Message !check, !raise or !fold.")
+            messages.append("Message #check, #raise or #fold.")
         elif self.current_player.max_bet > self.cur_bet:
-            messages.append("Message !call, !raise or !fold.")
+            messages.append("Message #call, #raise or #fold.")
         else:
-            messages.append("Message !all-in or !fold.")
+            messages.append("Message #all-in or #fold.")
         return messages
 
     # Advances to the next round of betting (or to the showdown), returning a
