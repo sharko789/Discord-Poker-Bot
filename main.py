@@ -6,17 +6,10 @@ import discord
 
 from game import Game, GAME_OPTIONS, GameState
 
-
-
-dbcursor.execute('''CREATE TABLE IF NOT EXISTS players (
-                        uid TEXT PRIMARY KEY,
-                        money INT DEFAULT 1000,
-                        exp INT DEFAULT 0,
-                        level INT DEFAULT 1,
-                        wincount INT DEFAULT 0)''')
-
-
-client = discord.Client()
+intents = discord.Intents.default()
+intents.message_content = True
+intents.members = True
+client = discord.Client(intents=intents)
 games: Dict[discord.TextChannel, Game] = {}
 
 
@@ -324,11 +317,9 @@ async def on_message(message):
         await message.channel.send('\n'.join(messages))
 
 
-TOKEN = os.getenv("TOKEN")
-
 @client.event
 async def on_ready():
     print(f"Logged in as {client.user.name}({client.user.id})")
 
-if __name__ == "__main__":
-    client.run(TOKEN)
+
+client.run(os.getenv("BOT_TOKEN"))
